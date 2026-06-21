@@ -1,0 +1,4 @@
+exports/*.png
+exports/*.jpg
+.DS_Store
+Thumbs.db

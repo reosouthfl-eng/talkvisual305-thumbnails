@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TalkVisual305 Thumbnail Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root{
+    --navy: #0A1F33;
+    --navy-soft: #10293Fcc;
+    --yellow: #ffd93d;
+    --green: #3ddc84;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: Arial, sans-serif;
+    background:#1e1e1e;
+    color:#eee;
+    display:flex;
+    flex-wrap:wrap;
+    gap:24px;
+    padding:24px;
+  }
+  h1{ width:100%; font-size:18px; color:#fff; margin:0 0 4px; }
+  .sub{ width:100%; margin:0 0 16px; color:#999; font-size:13px; }
+
+  /* ---------- Controls panel ---------- */
+  #controls{
+    width:340px;
+    flex-shrink:0;
+    background:#2a2a2a;
+    border-radius:10px;
+    padding:18px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    max-height:90vh;
+    overflow-y:auto;
+  }
+  #controls label{ font-size:12px; color:#bbb; display:block; margin-bottom:4px; font-weight:bold; text-transform:uppercase; letter-spacing:.5px;}
+  #controls input[type=text], #controls select{
+    width:100%; padding:8px; border-radius:6px; border:1px solid #444; background:#181818; color:#fff; font-size:13px;
+  }
+  #controls input[type=file]{ width:100%; font-size:12px; color:#ccc; }
+  #controls .field{ display:flex; flex-direction:column; }
+  #controls fieldset{ border:1px solid #3a3a3a; border-radius:8px; padding:10px; }
+  #controls legend{ font-size:11px; color:#888; text-transform:uppercase; letter-spacing:.5px; }
+  #controls button{
+    background:linear-gradient(90deg,#ff5fa2,#ff8a3d,#ffd93d);
+    color:#0A1F33; font-weight:900; border:none; border-radius:8px; padding:12px;
+    cursor:pointer; font-size:14px; text-transform:uppercase; letter-spacing:.5px;
+  }
+  #controls button:hover{ filter:brightness(1.08); }
+  .layout-note{ font-size:11px; color:#777; }
+  .checkbox-row{ display:flex; align-items:center; gap:8px; }
+  .checkbox-row label{ margin:0; }
+
+  /* ---------- Canvas stage ---------- */
+  #stage-wrap{ display:flex; flex-direction:column; gap:10px; }
+  #thumb-canvas{
+    position:relative;
+    overflow:hidden;
+    background:#000;
+    transform-origin: top left;
+  }
+  #scale-wrap{
+    overflow:hidden;
+  }
+
+  #bg-photo-layer{
+    position:absolute; inset:0;
+    display:flex;
+  }
+  #bg-photo-layer img{
+    width:100%; height:100%; object-fit:cover; display:block;
+  }
+  #bg-photo-layer.split-duo{ }
+  #bg-photo-layer.split-duo .half{
+    width:50%; height:100%; overflow:hidden; position:relative;
+  }
+  #bg-photo-layer.split-duo .half img{ width:100%; height:100%; object-fit:cover; }
+
+  /* navy scrim treatments */
+  .scrim{
+    position:absolute; inset:0; pointer-events:none;
+  }
+  .scrim-bottom{
+    background: linear-gradient(to bottom, rgba(10,31,51,0.05) 0%, rgba(10,31,51,0.35) 45%, rgba(10,31,51,0.92) 100%);
+  }
+  .scrim-tint{
+    background: rgba(10,31,51,0.18);
+    mix-blend-mode: multiply;
+  }
+  .scrim-side{
+    background: linear-gradient(to right, rgba(10,31,51,0) 0%, rgba(10,31,51,0) 48%, var(--navy) 52%, var(--navy) 100%);
+  }
+  .navy-panel{
+    position:absolute; top:0; right:0; width:50%; height:100%;
+    background: linear-gradient(160deg, #0A1F33 0%, #142e4a 60%, #0A1F33 100%);
+  }
+
+  /* logo badge */
+  #logo-badge{
+    position:absolute; top:24px; right:24px; width:120px; height:120px;
+    z-index:50; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.6));
+  }
+  #logo-badge img{ width:100%; height:100%; }
+
+  /* accent badge */
+  #accent-badge{
+    position:absolute; top:24px; left:24px; z-index:50;
+    background: linear-gradient(90deg,#ff5fa2,#ff8a3d);
+    color:#fff; font-family:'Montserrat',Arial,sans-serif; font-weight:900;
+    font-size:22px; text-transform:uppercase; letter-spacing:1px;
+    padding:8px 18px; border-radius:6px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.5);
+    transform: rotate(-3deg);
+  }
+
+  /* headline */
+  #headline-block{
+    position:absolute; left:48px; right:48px; bottom:38px; z-index:40;
+    font-family:'Montserrat', Arial, sans-serif;
+    text-transform:uppercase;
+    line-height:1.02;
+  }
+  #headline-block .leadin{
+    display:block;
+    font-weight:800;
+    font-size:46px;
+    color:#ffffff;
+    -webkit-text-stroke: 7px #000;
+    paint-order: stroke fill;
+    text-shadow: 2px 2px 5px rgba(0,0,0,0.85);
+    margin-bottom:2px;
+  }
+  #headline-block .emphasis-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:14px;
+  }
+  #headline-block .emphasis-word{
+    font-weight:900;
+    font-size:92px;
+    -webkit-text-stroke: 10px #000;
+    paint-order: stroke fill;
+    text-shadow: 2px 2px 5px rgba(0,0,0,0.9);
+  }
+  #headline-block .emphasis-word.color-yellow{ color: var(--yellow); }
+  #headline-block .emphasis-word.color-green{ color: var(--green); }
+
+  /* guest name overlay */
+  #guest-name-block{
+    position:absolute; left:48px; bottom:300px; z-index:40;
+    font-family:'Montserrat', Arial, sans-serif;
+    text-transform:uppercase;
+  }
+  #guest-name-block .name{
+    font-weight:900; font-size:30px; color:#fff;
+    -webkit-text-stroke: 4px #000; paint-order: stroke fill;
+    text-shadow: 2px 2px 5px rgba(0,0,0,0.85);
+    display:block;
+  }
+  #guest-name-block .title{
+    font-weight:800; font-size:18px; color: var(--yellow);
+    -webkit-text-stroke: 3px #000; paint-order: stroke fill;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.85);
+    display:block;
+    margin-top:2px;
+  }
+
+  /* guest-focus layout positioning tweaks */
+  #thumb-canvas.layout-guest-focus #headline-block{
+    left:auto; right:48px; width:560px; bottom:120px; text-align:right;
+  }
+  #thumb-canvas.layout-guest-focus #headline-block .emphasis-row{ justify-content:flex-end; }
+  #thumb-canvas.layout-guest-focus #guest-name-block{ left:auto; right:48px; bottom: 380px; text-align:right; }
+
+  /* ---------- Vertical / Shorts orientation (9:16) ----------
+     Centered, stacked caption look instead of bottom-third headline.
+     The navy side-panel split doesn't read well in portrait, so it's
+     suppressed regardless of layout variant when vertical is selected. */
+  #thumb-canvas.orientation-vertical .navy-panel{ display:none !important; }
+  #thumb-canvas.orientation-vertical #headline-block{
+    left:6%; right:6%; width:auto; bottom:auto; top:58%; transform:translateY(-50%);
+    text-align:center;
+  }
+  #thumb-canvas.orientation-vertical #headline-block .leadin{ font-size:38px; }
+  #thumb-canvas.orientation-vertical #headline-block .emphasis-row{ justify-content:center; }
+  #thumb-canvas.orientation-vertical #headline-block .emphasis-word{ font-size:76px; }
+  #thumb-canvas.orientation-vertical #guest-name-block{
+    left:0; right:0; width:auto; bottom:auto; top:40%; text-align:center;
+  }
+  #thumb-canvas.orientation-vertical #logo-badge{ width:90px; height:90px; top:30px; right:30px; }
+  #thumb-canvas.orientation-vertical #accent-badge{ font-size:16px; padding:6px 14px; top:30px; left:30px; }
+
+  footer{ width:100%; font-size:11px; color:#666; margin-top:8px; }
+</style>
+</head>
+<body>
+
+<h1>TalkVisual305 — Local Thumbnail Generator</h1>
+<p class="sub">Fill in the fields, watch the preview update, then export a pixel-accurate 1280×720 PNG.</p>
+
+<div id="controls">
+
+  <fieldset>
+    <legend>Format</legend>
+    <div class="field">
+      <select id="aspectSelect">
+        <option value="16:9" selected>YouTube Thumbnail — 1280×720 (16:9)</option>
+        <option value="9:16">YouTube Shorts — 1080×1920 (9:16)</option>
+      </select>
+    </div>
+    <p class="layout-note">Shorts format switches the headline to a centered, stacked caption style and hides the navy side-panel split.</p>
+  </fieldset>
+
+  <fieldset>
+    <legend>Layout</legend>
+    <div class="field">
+      <select id="layoutSelect">
+        <option value="panel-wide" selected>Panel wide (3-person table shot)</option>
+        <option value="guest-focus">Guest focus (single photo + navy panel)</option>
+        <option value="split-duo" disabled>Split duo — coming soon</option>
+      </select>
+    </div>
+    <p class="layout-note">Built now: Panel wide, Guest focus. Split duo is stubbed for a later pass — add it in the JS layout switch when ready.</p>
+  </fieldset>
+
+  <fieldset>
+    <legend>Photo(s)</legend>
+    <div class="field">
+      <label for="photoMain">Main photo (panel shot or guest photo)</label>
+      <input type="file" id="photoMain" accept="image/*">
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Headline</legend>
+    <div class="field">
+      <label for="leadin">Lead-in text (smaller, white)</label>
+      <input type="text" id="leadin" value="WHY IS THE CITY">
+    </div>
+    <div class="field" style="margin-top:10px;">
+      <label for="emphasis">Emphasized words (comma-separated, alternate yellow/green)</label>
+      <input type="text" id="emphasis" value="STALLING, REDEVELOPMENT?">
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Guest / Name Overlay</legend>
+    <div class="field">
+      <label for="guestName">Guest name</label>
+      <input type="text" id="guestName" value="JARED BECK">
+    </div>
+    <div class="field" style="margin-top:10px;">
+      <label for="guestTitle">Title / role</label>
+      <input type="text" id="guestTitle" value="CRA DIRECTOR">
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Accent Badge</legend>
+    <div class="checkbox-row">
+      <input type="checkbox" id="showAccent" checked>
+      <label for="showAccent">Show badge</label>
+    </div>
+    <div class="field" style="margin-top:10px;">
+      <input type="text" id="accentText" value="NEW EPISODE">
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Export</legend>
+    <div class="field">
+      <label for="filename">Filename (no extension)</label>
+      <input type="text" id="filename" value="">
+      <p class="layout-note">Leave blank to auto-generate from headline.</p>
+    </div>
+  </fieldset>
+
+  <button id="exportBtn">Export PNG</button>
+</div>
+
+<div id="stage-wrap">
+  <div id="scale-wrap">
+    <div id="thumb-canvas" class="layout-panel-wide">
+      <div id="bg-photo-layer">
+        <img id="mainPhotoImg" src="assets/samples/sample-panel.svg" alt="main photo">
+      </div>
+      <div class="scrim scrim-tint"></div>
+      <div class="scrim scrim-bottom"></div>
+      <div class="navy-panel" id="navyPanel" style="display:none;"></div>
+
+      <div id="logo-badge"><img src="assets/logo/placeholder-logo.svg" alt="logo"></div>
+      <div id="accent-badge">NEW EPISODE</div>
+
+      <div id="guest-name-block">
+        <span class="name">JARED BECK</span>
+        <span class="title">CRA DIRECTOR</span>
+      </div>
+
+      <div id="headline-block">
+        <span class="leadin">WHY IS THE CITY</span>
+        <div class="emphasis-row" id="emphasisRow">
+          <span class="emphasis-word color-yellow">STALLING,</span>
+          <span class="emphasis-word color-green">REDEVELOPMENT?</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer id="previewFooter">Preview is scaled down to fit the screen — export always renders the full-size canvas at 1:1.</footer>
+</div>
+
+<script>
+const el = id => document.getElementById(id);
+
+const ASPECTS = {
+  '16:9': { w: 1280, h: 720 },
+  '9:16': { w: 1080, h: 1920 }
+};
+const MAX_PREVIEW_W = 850;
+const MAX_PREVIEW_H = 540;
+let currentAspect = '16:9';
+
+const aspectSelect = el('aspectSelect');
+const scaleWrap = el('scale-wrap');
+const previewFooter = el('previewFooter');
+const layoutSelect = el('layoutSelect');
+const photoMain = el('photoMain');
+const leadinInput = el('leadin');
+const emphasisInput = el('emphasis');
+const guestNameInput = el('guestName');
+const guestTitleInput = el('guestTitle');
+const showAccent = el('showAccent');
+const accentText = el('accentText');
+const filenameInput = el('filename');
+
+const canvas = el('thumb-canvas');
+const mainPhotoImg = el('mainPhotoImg');
+const navyPanel = el('navyPanel');
+const headlineBlock = el('headline-block');
+const leadinSpan = headlineBlock.querySelector('.leadin');
+const emphasisRow = el('emphasisRow');
+const guestNameBlock = el('guest-name-block');
+const accentBadge = el('accent-badge');
+
+function applyAspect(aspectKey){
+  currentAspect = aspectKey;
+  const { w, h } = ASPECTS[aspectKey];
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  canvas.classList.toggle('orientation-vertical', aspectKey === '9:16');
+
+  const scale = Math.min(MAX_PREVIEW_W / w, MAX_PREVIEW_H / h);
+  canvas.style.transform = 'scale(' + scale + ')';
+  scaleWrap.style.width = (w * scale) + 'px';
+  scaleWrap.style.height = (h * scale) + 'px';
+
+  previewFooter.textContent = 'Preview is scaled down to fit the screen — export always renders the full-size '
+    + w + '×' + h + ' canvas at 1:1.';
+}
+
+function applyLayout(layout){
+  canvas.classList.remove('layout-panel-wide','layout-guest-focus','layout-split-duo');
+  canvas.classList.add('layout-' + layout);
+  if(layout === 'guest-focus'){
+    navyPanel.style.display = 'block';
+    mainPhotoImg.style.objectPosition = 'left center';
+  } else {
+    navyPanel.style.display = 'none';
+    mainPhotoImg.style.objectPosition = 'center';
+  }
+}
+
+function renderHeadline(){
+  leadinSpan.textContent = leadinInput.value;
+  const words = emphasisInput.value.split(',').map(w => w.trim()).filter(Boolean);
+  emphasisRow.innerHTML = '';
+  words.forEach((word, i) => {
+    const span = document.createElement('span');
+    span.className = 'emphasis-word ' + (i % 2 === 0 ? 'color-yellow' : 'color-green');
+    span.textContent = word;
+    emphasisRow.appendChild(span);
+  });
+}
+
+function renderGuest(){
+  const name = guestNameInput.value.trim();
+  const title = guestTitleInput.value.trim();
+  if(!name && !title){
+    guestNameBlock.style.display = 'none';
+    return;
+  }
+  guestNameBlock.style.display = 'block';
+  guestNameBlock.querySelector('.name').textContent = name;
+  guestNameBlock.querySelector('.title').textContent = title;
+}
+
+function renderAccent(){
+  accentBadge.style.display = showAccent.checked ? 'block' : 'none';
+  accentBadge.textContent = accentText.value;
+}
+
+photoMain.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const url = URL.createObjectURL(file);
+  mainPhotoImg.src = url;
+});
+
+aspectSelect.addEventListener('change', e => applyAspect(e.target.value));
+layoutSelect.addEventListener('change', e => applyLayout(e.target.value));
+[leadinInput, emphasisInput].forEach(i => i.addEventListener('input', renderHeadline));
+[guestNameInput, guestTitleInput].forEach(i => i.addEventListener('input', renderGuest));
+[showAccent, accentText].forEach(i => i.addEventListener('input', renderAccent));
+
+function slugify(text){
+  return text.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60) || 'thumbnail';
+}
+
+el('exportBtn').addEventListener('click', () => {
+  const { w, h } = ASPECTS[currentAspect];
+  const prevTransform = canvas.style.transform;
+  const prevW = scaleWrap.style.width;
+  const prevH = scaleWrap.style.height;
+
+  canvas.style.transform = 'none';
+  scaleWrap.style.width = w + 'px';
+  scaleWrap.style.height = h + 'px';
+
+  function restorePreview(){
+    canvas.style.transform = prevTransform;
+    scaleWrap.style.width = prevW;
+    scaleWrap.style.height = prevH;
+  }
+
+  html2canvas(canvas, {
+    width: w,
+    height: h,
+    scale: 1,
+    useCORS: true,
+    backgroundColor: '#000000'
+  }).then(renderedCanvas => {
+    restorePreview();
+
+    let name = filenameInput.value.trim();
+    if(!name){
+      const headlineText = leadinInput.value + ' ' + emphasisInput.value;
+      name = slugify(headlineText);
+    }
+    const suffix = currentAspect === '9:16' ? '-shorts' : '';
+    const link = document.createElement('a');
+    link.download = name + suffix + '.png';
+    link.href = renderedCanvas.toDataURL('image/png');
+    link.click();
+  }).catch(err => {
+    restorePreview();
+    alert('Export failed: ' + err.message);
+  });
+});
+
+// init
+applyAspect(aspectSelect.value);
+applyLayout(layoutSelect.value);
+renderHeadline();
+renderGuest();
+renderAccent();
+</script>
+</body>
+</html>

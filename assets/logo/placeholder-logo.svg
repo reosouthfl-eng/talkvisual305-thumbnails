@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
+  <defs>
+    <linearGradient id="sunset" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff5fa2"/>
+      <stop offset="50%" stop-color="#ff8a3d"/>
+      <stop offset="100%" stop-color="#ffd93d"/>
+    </linearGradient>
+  </defs>
+  <circle cx="150" cy="150" r="140" fill="#0A1F33" stroke="url(#sunset)" stroke-width="6"/>
+  <circle cx="150" cy="120" r="55" fill="url(#sunset)" opacity="0.85"/>
+  <path d="M150 70 L150 230 M110 230 L190 230 M150 150 L100 110 M150 140 L195 105 M150 170 L95 175 M150 180 L205 190" stroke="#0A1F33" stroke-width="6" fill="none"/>
+  <rect x="138" y="190" width="24" height="50" rx="10" fill="#2fd9c4"/>
+  <rect x="128" y="232" width="44" height="8" rx="4" fill="#2fd9c4"/>
+  <text x="150" y="270" font-family="Montserrat, sans-serif" font-weight="900" font-size="22" fill="#ffffff" text-anchor="middle" letter-spacing="1">TALKVISUAL 305</text>
+  <text x="150" y="40" font-family="Montserrat, sans-serif" font-size="10" fill="#ffd93d" text-anchor="middle">PLACEHOLDER LOGO</text>
+</svg>
